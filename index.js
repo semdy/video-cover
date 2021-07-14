@@ -19,7 +19,7 @@ class VideoCover {
       isCheckImageColor,
     } = config;
 
-    if (!url) {
+    if (!url && !file) {
       console.warn('视频链接不能为空')
     }
 
