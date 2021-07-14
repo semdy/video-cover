@@ -6,7 +6,9 @@ module.exports  = {
     },
     output: {
         filename: '[name].min.js',
-        path: __dirname
+        path: __dirname,
+        library: 'VideoCover',
+        libraryTarget: 'umd'
     },
 
     module:{

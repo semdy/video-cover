@@ -7,7 +7,7 @@
     <meta name="renderer" content="webkit">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <script src="./index.js"></script>
+    <script src="./index.min.js"></script>
     <style>
         .cover {
             width: 600px;
@@ -93,7 +93,7 @@
 
     file.addEventListener('change', function (e) {
         var file = getFileObject(e.target);
-        cover = new VideoCover({
+        cover = new VideoCover.default({
             //url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
             file: file,
             // currentTime: 0,
