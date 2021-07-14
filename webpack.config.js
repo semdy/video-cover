@@ -8,7 +8,14 @@ module.exports  = {
         filename: '[name].min.js',
         path: __dirname,
         library: 'VideoCover',
-        libraryTarget: 'umd'
+        libraryTarget: 'umd',
+        environment: {
+            arrowFunction: false,
+            const: false,
+            destructuring: false,
+            forOf: false,
+            module: false
+        }
     },
 
     module:{
