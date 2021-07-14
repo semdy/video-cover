@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="renderer" content="webkit">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="./index.js"></script>
@@ -19,34 +20,95 @@
 </head>
 
 <body>
-    <div class="cover">
-        <p id="tips">获取中</p>
-        <img id="img">
+<div class="cover">
+    <p id="tips">获取中</p>
+    <img id="img">
 
-        <button id="start">开始</button>
-        <button id="downloadBtn">下载</button>
-        <button id="next">下一张</button>
-        <button id="appoint">指定时间</button>
-    </div>
+    <input type="file" id="file">
+    <button id="start">开始</button>
+    <button id="downloadBtn">下载</button>
+    <button id="next">下一张</button>
+    <button id="appoint">指定时间</button>
+</div>
 </body>
 <script>
-    const next = document.getElementById('next')
-    let imageInfo = ''
+    var next = document.getElementById('next')
+    var file = document.getElementById('file')
+    var imageInfo = ''
+    var cover;
 
-    const cover = new VideoCover({
-        url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
-        // currentTime: 0,
-        imgWidth: 600,
-        quality: 0.9,
-        imageType: 'image/jpeg',
-        isCheckImageColor: true, // 是否检查图片为纯色
+    function getFileObject(fileInput) {
+        var fileObj = null;
+
+        if (fileInput.files) {
+            fileObj = fileInput.files[0];
+        } else {
+            /*
+                1. 获取文件路径
+                    出于安全性的考虑，低版本IE上传文件时屏蔽了真实的本地文件路径,
+                    以C:\fakepath\**取而代之, 所以默认情况下通过fileInput.value 不能获取到
+                    文件的真实路径.
+                    如果想获取真实路径, 有两种方式:
+                        1. 通过设置IE的安全设置, 即:
+                            Tools(工具) / Internet options(选项) / Security(安全) / Custom level(自定义级别)
+                            找到"Include local directory path when uploading files to a server"
+                            设置为的"Enable"
+                        2. 使用JS获取, 即:
+                            fileInput.select().blur();
+                            var filePath = document.selection.createRange().text;
+            */
+            fileInput.select();
+            fileInput.blur();
+            var filePath = document.selection.createRange().text;
+
+            /*
+                低版本IE由于JS安全问题，不允许JS访问本地文件,所以无法获取files
+                对于低版本的IE可以使用ActiveXObject获取文件对象, 但是默认情况下
+                ActiveXObject为不可用的, 所以要想使用此对象要先启用设置, 即:
+                    Tools(工具) / Internet options(选项) / Security(安全) / Custom level(自定义级别)
+                    找到"Initialize and script ActiveX controls not marked as safe for scripting"
+                    设置为"Enable(not secure)"即可.
+
+            */
+            var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+            /*
+                FileExists:  判断 文件是否存在
+                GetFile: 获取文件对象
+            */
+            if (fso.FileExists(filePath)) {
+                fileObj = fso.GetFile(filePath);
+            }
+
+            /*
+                通过文件对象可以获取文件的基本信息, 如:
+            */
+            // console.info("文件类型:" + fileObj.type);
+            // console.info("文件名称:" + fileObj.name);
+            // console.info("文件大小:" + fileObj.size);
+        }
+
+        return fileObj;
+    }
+
+    file.addEventListener('change', function (e) {
+        var file = getFileObject(e.target);
+        cover = new VideoCover({
+            //url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
+            file: file,
+            // currentTime: 0,
+            imgWidth: 600,
+            quality: 0.9,
+            imageType: 'image/jpeg',
+            isCheckImageColor: true, // 是否检查图片为纯色
+        })
     })
 
-    document.getElementById('start').addEventListener('click', () => {
+    document.getElementById('start').addEventListener('click', function () {
         // 生成截图
-        cover.getVideoCover((res) => {
-            const img = document.getElementById('img')
-            const tips = document.getElementById('tips')
+        cover.getVideoCover(function (res) {
+            var img = document.getElementById('img')
+            var tips = document.getElementById('tips')
 
             img.setAttribute('src', res)
             imageInfo = res
@@ -65,7 +127,7 @@
     })
 
     // 下载图片
-    document.getElementById('downloadBtn').addEventListener('click', () => {
+    document.getElementById('downloadBtn').addEventListener('click', function () {
         if (imageInfo) {
             VideoCover.downloadFile(imageInfo)
         }

@@ -18,6 +18,7 @@
     constructor(config = {}) {
       const {
         url,
+        file,
         currentTime = 1,
         quality,
         imgWidth,
@@ -30,6 +31,7 @@
       }
 
       this.url = url;
+      this.file = file;
       this.video = null;
       this.videoWidth = 0;
       this.imageType = imageType || 'image/jpeg';
@@ -46,17 +48,24 @@
      */
     getVideoCover(callback) {
       const self = this;
-
       const video = this.video || document.createElement("video");
       const currentTime = self.currentTime;
-      video.src = self.url;
-      video.style.cssText = `position: fixed; top: -100%; width: 400px; visibility: hidden;`;
-      video.controls = "controls";
+      if (self.file) {
+        video.src = URL.createObjectURL(self.file);
+      } else {
+        video.src = self.url;
+      }
+      video.style.cssText = 'position: fixed; top: -100%; width: 400px; visibility: hidden;';
+      video.controls = 'controls';
       // 此处是设置跨域，防止污染canvas画布
-      video.crossOrigin = "Anonymous";
+      video.crossOrigin = 'Anonymous';
+      // 静音
+      video.muted = true;
 
-      // 设置视频播放进度
-      video.currentTime = currentTime;
+      video.addEventListener("loadedmetadata", function() {
+        // 设置视频播放进度
+        video.currentTime = currentTime;
+      }, false);
 
       // 监听播放进度改变，获取对应帧的截图
       video.addEventListener("timeupdate", () => {
@@ -71,15 +80,15 @@
 
       this.video = video;
 
-      document.body.appendChild(video);
+      // document.body.appendChild(video);
     }
 
     // 设置video信息
     setVideoInfo() {
       const video = this.video;
 
-      this.videoWidth = video.videoWidth;
-      this.videoHeight = video.videoHeight;
+      this.videoWidth = video.videoWidth || this.videoWidth;
+      this.videoHeight = video.videoHeight || this.videoHeight;
       this.duration = Math.floor(video.duration || 0);
     }
 
@@ -107,13 +116,13 @@
 
       currentTime++
 
-      this.jumpTime(currentTime)      
+      this.jumpTime(currentTime)
     }
 
     /**
      * 生成canvas，并到处图片信息
      * @param { Function } callback 回调函数
-     * @returns 
+     * @returns
      */
     generateCanvas(callback) {
       const self = this;
@@ -173,7 +182,7 @@
        */
 
       for (let i = 0, len = imgDataContent.length; i < len; i += 4) {
-        const key = imgDataContent.slice(i, i + 4).join("");
+        const key = [].slice.call(imgDataContent, i, i + 4).join("");
 
         if (!rgbObj[key]) {
           rgbObj[key] = 1;
@@ -262,12 +271,16 @@
       }
 
       let aLink = document.createElement("a");
-      let blob = this.base64ToBlob(code); //new Blob([content]);
-      let evt = document.createEvent("HTMLEvents");
+      const blob = this.base64ToBlob(code); //new Blob([content]);
+      let urlObj = URL.createObjectURL(blob);
+      const evt = document.createEvent("HTMLEvents");
       evt.initEvent("click", true, true); //initEvent 不加后两个参数在FF下会报错  事件类型，是否冒泡，是否阻止浏览器的默认行为
       aLink.download = fileName;
-      aLink.href = URL.createObjectURL(blob);
+      aLink.href = urlObj
       aLink.click();
+      window.URL.revokeObjectURL(urlObj);
+      aLink = null;
+      urlObj = null;
     }
   }
 
