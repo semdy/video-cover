@@ -96,7 +96,7 @@
         cover = new VideoCover.default({
             //url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
             // url: './zhaoliangjiadv2.mp4',
-            file: file,
+            url: file,
             // currentTime: 0,
             imgWidth: 600,
             quality: 0.9,
@@ -130,7 +130,7 @@
     // 下载图片
     document.getElementById('downloadBtn').addEventListener('click', function () {
         if (imageInfo) {
-            VideoCover.downloadFile(imageInfo)
+            VideoCover.default.downloadFile(imageInfo)
         }
     })
 </script>
