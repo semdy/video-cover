@@ -139,15 +139,16 @@ class VideoCover {
         let videoWidth = this.videoWidth;
         let videoHeight = this.videoHeight;
 
-        if (imgWidth) {
-            videoHeight = imgWidth / (videoWidth / videoHeight);
-            videoWidth = imgWidth;
-        }
-
-        canvas.width = videoWidth;
-        canvas.height = videoHeight;
 
         if (!this.canvas) {
+            if (imgWidth) {
+                videoHeight = imgWidth / (videoWidth / videoHeight);
+                videoWidth = imgWidth;
+            }
+
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+
             this.canvas = canvas;
         }
 
