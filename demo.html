@@ -91,10 +91,53 @@
         return fileObj;
     }
 
+    var video;
+    function drawVideoToCanvas(url) {
+        return new Promise((resolve, reject) => {
+            const canvas = document.createElement('canvas')
+            video = document.createElement('video')
+            video.controls = 'controls';
+            video.crossOrigin = 'Anonymous';
+            // 静音
+            video.muted = true;
+
+            video.onloadedmetadata = () => {
+                video.currentTime = 1
+            }
+
+            video.onseeked = () => {
+                // delay the drawImage call, otherwise we get an empty canvas on iOS
+                // see https://stackoverflow.com/questions/44145740/how-does-double-requestanimationframe-work
+                window.requestAnimationFrame(() => {
+                    window.requestAnimationFrame(() => {
+                        canvas.height = video.videoHeight
+                        canvas.width = video.videoWidth
+                        canvas
+                            .getContext('2d')
+                            .drawImage(video, 0, 0, canvas.width, canvas.height)
+
+                        resolve(canvas)
+                    })
+                })
+            }
+
+            // video.ontimeupdate = () => {
+            //    console.log(video.currentTime)
+            // }
+
+            video.onerror = () => {
+                reject(video.error)
+            }
+
+            video.src = url
+            video.load()
+        })
+    }
+
     file.addEventListener('change', function (e) {
         var file = getFileObject(e.target);
         cover = new VideoCover.default({
-            //url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
+            // url: 'https://cdn.huodao.hk/zhaoliangjiadv2.mp4',
             // url: './zhaoliangjiadv2.mp4',
             url: file,
             // currentTime: 0,
@@ -102,24 +145,37 @@
             quality: 0.9,
             imageType: 'image/jpeg',
             isCheckImageColor: true, // 是否检查图片为纯色
+            onNextFrame: function (res) {
+                var img = document.getElementById('img')
+                img.setAttribute('src', res)
+            }
         })
     })
 
     document.getElementById('start').addEventListener('click', function () {
         // 生成截图
-        cover.getVideoCover(function (res) {
+        cover.getVideoCover().then(function (res) {
             var img = document.getElementById('img')
             var tips = document.getElementById('tips')
 
             img.setAttribute('src', res)
             imageInfo = res
             tips.innerText = '获取成功'
+        }).catch(function (e) {
+            console.error(e)
         })
+
+        // drawVideoToCanvas('https://cdn.huodao.hk/zhaoliangjiadv2.mp4').then(function (canvas) {
+        //     var datUrl = canvas.toDataURL('image/jpeg', 0.2);
+        //     var img = document.getElementById('img')
+        //     img.setAttribute('src', datUrl)
+        // })
     })
 
     // 获取下一秒视频截图
     next.addEventListener('click', function () {
         cover.nextTime()
+        // video.currentTime = video.currentTime + 1;
     })
 
     // 获取下一秒视频截图

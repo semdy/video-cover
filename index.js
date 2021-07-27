@@ -15,7 +15,9 @@ class VideoCover {
             quality,
             imgWidth,
             imageType,
+            genBlob,
             isCheckImageColor,
+            onNextFrame
         } = config;
 
         if (!url) {
@@ -28,54 +30,73 @@ class VideoCover {
         this.imageType = imageType || 'image/jpeg';
         this.quality = quality ? (quality > 0.2 ? quality : 0.2) : 0.95; // 不要用1，会额外增大base64大小。
         this.imgWidth = imgWidth || 800;
+        this.genBlob = genBlob;
         this.currentTime = currentTime < 1 ? 1 : currentTime; // 默认设置1S
         this.isCheckImageColor = isCheckImageColor;
         this.duration = 0; // 视频时长
+        this.onNextFrame = onNextFrame || (() => {});
     }
 
     /**
-     * 生成视频
-     * @param { Function } callback 回调函数
+     * 生成视频封面
+     * @return Promise image dataUrl
      */
-    getVideoCover(callback) {
-        const self = this;
-        self.video = this.video || document.createElement("video");
-        const currentTime = self.currentTime;
-        if (self.url instanceof Blob) {
-            self.video.src = URL.createObjectURL(self.url);
-        } else {
-            self.video.src = self.url;
-        }
-        self.video.style.cssText = 'position: fixed; top: -100%; width: 400px; visibility: hidden;';
-        self.video.controls = 'controls';
-        // 此处是设置跨域，防止污染canvas画布
-        self.video.crossOrigin = 'Anonymous';
-        // 静音
-        self.video.muted = true;
+    getVideoCover() {
+        return new Promise((resolve, reject) => {
+            try {
+                const video = this.video || document.createElement("video");
+                const currentTime = this.currentTime;
+                if (this.url instanceof Blob) {
+                    video.src = URL.createObjectURL(this.url);
+                } else {
+                    video.src = this.url;
+                }
+                // video.style.cssText = 'position: fixed; top: -100%; width: 400px; visibility: hidden;';
+                video.controls = 'controls';
+                // 此处是设置跨域，防止污染canvas画布
+                video.crossOrigin = 'Anonymous';
+                // 静音
+                video.muted = true;
 
-        self.video.addEventListener("loadedmetadata", function () {
-            // 设置视频播放进度
-            self.video.currentTime = currentTime;
-        }, false);
+                video.addEventListener("loadedmetadata", () => {
+                    // 设置视频播放进度
+                    video.currentTime = currentTime;
+                }, false);
 
-        // 监听播放进度改变，获取对应帧的截图
-        self.video.addEventListener("timeupdate", () => {
-            self.setVideoInfo();
+                // 监听播放进度改变，获取对应帧的截图
+                video.addEventListener("timeupdate", () => {
+                    this.setVideoInfo();
 
-            if (self.currentTime <= self.duration) {
-                self.generateCanvas(callback);
-            } else {
-                self.nextTime()
+                    if (this.currentTime <= this.duration) {
+                        this.generateCanvas(res => {
+                            resolve(res);
+                            this.onNextFrame(res);
+                        });
+                    } else {
+                        this.nextTime();
+                    }
+                });
+
+                video.addEventListener("error", () => {
+                    reject(video.error);
+                }, false);
+
+                video.load();
+
+                if (!this.video) {
+                    this.video = video;
+                }
+
+                // document.body.appendChild(this.video);
+            } catch (e) {
+                reject(e);
             }
-        });
-
-        // document.body.appendChild(self.video);
+        })
     }
 
     // 设置video信息
     setVideoInfo() {
         const video = this.video;
-
         this.videoWidth = video.videoWidth || this.videoWidth;
         this.videoHeight = video.videoHeight || this.videoHeight;
         this.duration = Math.floor(video.duration || 0);
@@ -88,9 +109,7 @@ class VideoCover {
     jumpTime(time) {
         const duration = this.duration;
         time = time > duration ? duration : time;
-
         this.currentTime = time;
-
         this.video.currentTime = time;
     }
 
@@ -104,7 +123,6 @@ class VideoCover {
         }
 
         currentTime++
-
         this.jumpTime(currentTime)
     }
 
@@ -114,7 +132,6 @@ class VideoCover {
      * @returns
      */
     generateCanvas(callback) {
-        const self = this;
         const canvas = this.canvas || document.createElement("canvas");
         const ctx = canvas.getContext("2d", {alpha: false});
         const imgWidth = this.imgWidth;
@@ -122,32 +139,38 @@ class VideoCover {
         let videoWidth = this.videoWidth;
         let videoHeight = this.videoHeight;
 
-        if (!this.canvas) {
-            if (imgWidth) {
-                videoHeight = imgWidth / (videoWidth / videoHeight);
-                videoWidth = imgWidth;
-            }
-
-            canvas.width = videoWidth;
-            canvas.height = videoHeight;
+        if (imgWidth) {
+            videoHeight = imgWidth / (videoWidth / videoHeight);
+            videoWidth = imgWidth;
         }
 
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+
+        if (!this.canvas) {
+            this.canvas = canvas;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
 
         // 如果开启图片校验模式
         if (isCheckImageColor) {
             const checkImageResult = this.checkImage(ctx, videoWidth, videoHeight);
-
             if (!checkImageResult) {
                 this.nextTime();
-
                 return;
             }
         }
 
-        const img = canvas.toDataURL(this.imageType, self.quality);
-
-        callback && callback(img);
+        if (this.genBlob) {
+            canvas.toBlob(blob => {
+                callback(blob);
+            }, this.imageType, this.quality);
+        } else {
+            const img = canvas.toDataURL(this.imageType, this.quality);
+            callback(img);
+        }
     }
 
     /**
