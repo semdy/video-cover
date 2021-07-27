@@ -18,23 +18,23 @@ class VideoCover {
             genBlob,
             isCheckImageColor,
             onNextFrame
-        } = config;
+        } = config
 
         if (!url) {
             console.warn('视频链接不能为空')
         }
 
-        this.url = url;
-        this.video = null;
-        this.videoWidth = 0;
-        this.imageType = imageType || 'image/jpeg';
-        this.quality = quality ? (quality > 0.2 ? quality : 0.2) : 0.95; // 不要用1，会额外增大base64大小。
-        this.imgWidth = imgWidth || 800;
-        this.genBlob = genBlob;
-        this.currentTime = currentTime < 1 ? 1 : currentTime; // 默认设置1S
-        this.isCheckImageColor = isCheckImageColor;
-        this.duration = 0; // 视频时长
-        this.onNextFrame = onNextFrame || (() => {});
+        this.url = url
+        this.video = null
+        this.videoWidth = 0
+        this.imageType = imageType || 'image/jpeg'
+        this.quality = quality ? (quality > 0.2 ? quality : 0.2) : 0.95 // 不要用1，会额外增大base64大小。
+        this.imgWidth = imgWidth || 800
+        this.genBlob = genBlob
+        this.currentTime = currentTime < 1 ? 1 : currentTime // 默认设置1S
+        this.isCheckImageColor = isCheckImageColor
+        this.duration = 0 // 视频时长
+        this.onNextFrame = onNextFrame || (() => {})
     }
 
     /**
@@ -44,62 +44,70 @@ class VideoCover {
     getVideoCover() {
         return new Promise((resolve, reject) => {
             try {
-                const video = this.video || document.createElement("video");
-                const currentTime = this.currentTime;
+                const video = this.video || document.createElement('video')
+                const { currentTime } = this
                 if (this.url instanceof Blob) {
-                    video.src = URL.createObjectURL(this.url);
+                    video.src = URL.createObjectURL(this.url)
                 } else {
-                    video.src = this.url;
+                    video.src = this.url
                 }
                 // video.style.cssText = 'position: fixed; top: -100%; width: 400px; visibility: hidden;';
-                video.controls = 'controls';
+                video.controls = 'controls'
                 // 此处是设置跨域，防止污染canvas画布
-                video.crossOrigin = 'Anonymous';
+                video.crossOrigin = 'Anonymous'
                 // 静音
-                video.muted = true;
+                video.muted = true
 
-                video.addEventListener("loadedmetadata", () => {
-                    // 设置视频播放进度
-                    video.currentTime = currentTime;
-                }, false);
+                video.addEventListener(
+                    'loadedmetadata',
+                    () => {
+                        // 设置视频播放进度
+                        video.currentTime = currentTime
+                    },
+                    false
+                )
 
                 // 监听播放进度改变，获取对应帧的截图
-                video.addEventListener("timeupdate", () => {
-                    this.setVideoInfo();
+                video.addEventListener('timeupdate', () => {
+                    this.setVideoInfo()
 
                     if (this.currentTime <= this.duration) {
                         this.generateCanvas(res => {
-                            resolve(res);
-                            this.onNextFrame(res);
-                        });
+                            resolve(res)
+                            this.onNextFrame(res)
+                        })
                     } else {
-                        this.nextTime();
+                        this.nextTime()
                     }
-                });
+                })
 
-                video.addEventListener("error", () => {
-                    reject(video.error);
-                }, false);
+                video.addEventListener(
+                    'error',
+                    () => {
+                        reject(video.error)
+                    },
+                    false
+                )
 
-                video.load();
+                video.load()
 
                 if (!this.video) {
-                    this.video = video;
+                    this.video = video
                 }
 
                 // document.body.appendChild(this.video);
             } catch (e) {
-                reject(e);
+                reject(e)
             }
         })
     }
 
     // 设置video信息
     setVideoInfo() {
-        const video = this.video;
-        this.videoWidth = video.videoWidth || this.videoWidth;
-        this.videoHeight = video.videoHeight || this.videoHeight;
-        this.duration = Math.floor(video.duration || 0);
+        const { video } = this
+        this.videoWidth = video.videoWidth || this.videoWidth
+        this.videoHeight = video.videoHeight || this.videoHeight
+        this.duration = Math.floor(video.duration || 0)
     }
 
     /**
@@ -107,19 +115,19 @@ class VideoCover {
      * @param { Number } time 时间位置
      */
     jumpTime(time) {
-        const duration = this.duration;
-        time = time > duration ? duration : time;
-        this.currentTime = time;
-        this.video.currentTime = time;
+        const { duration } = this
+        time = time > duration ? duration : time
+        this.currentTime = time
+        this.video.currentTime = time
     }
 
     // 获取下一秒的截图
     nextTime() {
-        const duration = this.duration;
-        let currentTime = this.currentTime;
+        const { duration } = this
+        let { currentTime } = this
 
         if (this.currentTime === duration) {
-            return;
+            return
         }
 
         currentTime++
@@ -132,45 +140,48 @@ class VideoCover {
      * @returns
      */
     generateCanvas(callback) {
-        const canvas = this.canvas || document.createElement("canvas");
-        const ctx = canvas.getContext("2d", {alpha: false});
-        const imgWidth = this.imgWidth;
-        const isCheckImageColor = this.isCheckImageColor;
-        let videoWidth = this.videoWidth;
-        let videoHeight = this.videoHeight;
-
+        const canvas = this.canvas || document.createElement('canvas')
+        const ctx = canvas.getContext('2d', { alpha: false })
+        const { imgWidth } = this
+        const { isCheckImageColor } = this
+        let { videoWidth } = this
+        let { videoHeight } = this
 
         if (!this.canvas) {
             if (imgWidth) {
-                videoHeight = imgWidth / (videoWidth / videoHeight);
-                videoWidth = imgWidth;
+                videoHeight = imgWidth / (videoWidth / videoHeight)
+                videoWidth = imgWidth
             }
 
-            canvas.width = videoWidth;
-            canvas.height = videoHeight;
+            canvas.width = videoWidth
+            canvas.height = videoHeight
 
-            this.canvas = canvas;
+            this.canvas = canvas
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height)
 
         // 如果开启图片校验模式
         if (isCheckImageColor) {
-            const checkImageResult = this.checkImage(ctx, videoWidth, videoHeight);
+            const checkImageResult = this.checkImage(ctx, videoWidth, videoHeight)
             if (!checkImageResult) {
-                this.nextTime();
-                return;
+                this.nextTime()
+                return
             }
         }
 
         if (this.genBlob) {
-            canvas.toBlob(blob => {
-                callback(blob);
-            }, this.imageType, this.quality);
+            canvas.toBlob(
+                blob => {
+                    callback(blob)
+                },
+                this.imageType,
+                this.quality
+            )
         } else {
-            const img = canvas.toDataURL(this.imageType, this.quality);
-            callback(img);
+            const img = canvas.toDataURL(this.imageType, this.quality)
+            callback(img)
         }
     }
 
@@ -181,10 +192,10 @@ class VideoCover {
      * @param { Number } height canvas高度
      */
     checkImage(ctx, width, height) {
-        const imgData = ctx.getImageData(0, 0, width, height);
-        const imgDataContent = imgData.data;
-        const rgbObj = {};
-        let differentLen = 0;
+        const imgData = ctx.getImageData(0, 0, width, height)
+        const imgDataContent = imgData.data
+        const rgbObj = {}
+        let differentLen = 0
 
         /**
          * canvas通过imgDataContent获取到的值是一个Uint8ClampedArray的类型化数组
@@ -195,20 +206,20 @@ class VideoCover {
          */
 
         for (let i = 0, len = imgDataContent.length; i < len; i += 4) {
-            const key = [].slice.call(imgDataContent, i, i + 4).join("");
+            const key = [].slice.call(imgDataContent, i, i + 4).join('')
 
             if (!rgbObj[key]) {
-                rgbObj[key] = 1;
-                differentLen++;
+                rgbObj[key] = 1
+                differentLen++
             }
 
             // 判断如果颜色超出100种，不是纯图
             if (differentLen > 100) {
-                return true;
+                return true
             }
         }
 
-        return false;
+        return false
     }
 
     /**
@@ -218,13 +229,13 @@ class VideoCover {
      */
     static base64ToBlob(code) {
         if (!code) {
-            console.warn("base64不能为空");
-            return;
+            console.warn('base64不能为空')
+            return
         }
 
-        let parts = code.split(";base64,");
+        const parts = code.split(';base64,')
         // 获取图片类型
-        let contentType = parts[0].split(":")[1];
+        const contentType = parts[0].split(':')[1]
 
         /**
          * 解码base64
@@ -232,19 +243,19 @@ class VideoCover {
          * encodedStr: 必需，是一个通过 btoa() 方法编码的字符串。
          * 该方法返回一个解码的字符串。
          */
-        let raw = window.atob(parts[1]);
-        let rawLength = raw.length;
+        const raw = window.atob(parts[1])
+        const rawLength = raw.length
 
         // Uint8Array 数组类型表示一个8位无符号整型数组，创建时内容被初始化为0。
         // 创建完后，可以以对象的方式或使用数组下标索引的方式引用数组中的元素。
         /**
          * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array
          */
-        let uInt8Array = new Uint8Array(rawLength);
+        const uInt8Array = new Uint8Array(rawLength)
 
         // 将字符转换成unicode值
         for (let i = 0; i < rawLength; ++i) {
-            uInt8Array[i] = raw.charCodeAt(i);
+            uInt8Array[i] = raw.charCodeAt(i)
         }
 
         /**
@@ -267,8 +278,8 @@ class VideoCover {
          * 或者 "transparent"，代表会保持blob中保存的结束符不变
          */
         return new Blob([uInt8Array], {
-            type: contentType,
-        });
+            type: contentType
+        })
     }
 
     /**
@@ -276,24 +287,24 @@ class VideoCover {
      * @param {String} code base64字符串
      */
     static downloadFile(code) {
-        const fileName = Date.now();
+        const fileName = Date.now()
 
         if (!code) {
-            console.warn("base64不能为空");
-            return;
+            console.warn('base64不能为空')
+            return
         }
 
-        let aLink = document.createElement("a");
-        const blob = this.base64ToBlob(code); //new Blob([content]);
-        let urlObj = URL.createObjectURL(blob);
-        const evt = document.createEvent("HTMLEvents");
-        evt.initEvent("click", true, true); //initEvent 不加后两个参数在FF下会报错  事件类型，是否冒泡，是否阻止浏览器的默认行为
-        aLink.download = fileName;
+        let aLink = document.createElement('a')
+        const blob = this.base64ToBlob(code) // new Blob([content]);
+        let urlObj = URL.createObjectURL(blob)
+        const evt = document.createEvent('HTMLEvents')
+        evt.initEvent('click', true, true) // initEvent 不加后两个参数在FF下会报错  事件类型，是否冒泡，是否阻止浏览器的默认行为
+        aLink.download = fileName
         aLink.href = urlObj
-        aLink.click();
-        window.URL.revokeObjectURL(urlObj);
-        aLink = null;
-        urlObj = null;
+        aLink.click()
+        window.URL.revokeObjectURL(urlObj)
+        aLink = null
+        urlObj = null
     }
 }
 
